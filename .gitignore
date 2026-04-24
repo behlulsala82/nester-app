@@ -1,0 +1,33 @@
+# Node.js
+**/node_modules
+**/.next
+**/out
+**/build
+.npm
+**.log
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache
+**/venv
+**/env
+**/.env
+**/target
+
+# OS files
+.DS_Store
+Thumbs.db
+*.bak
+*.swp
+
+# IDEs
+.vscode
+.idea
+*.sublime-project
+*.sublime-workspace
+
+# Local outputs
+**/nester-cutting-plan*.pdf
