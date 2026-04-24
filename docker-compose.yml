@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  optimizer:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimizer
+    ports:
+      - "8000:8000"
+    restart: always
+
+  frontend:
+    build:
+      context: ./nester-app
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - OPTIMIZER_API_URL=http://optimizer:8000/optimize
+    depends_on:
+      - optimizer

@@ -1,9 +1,5 @@
 import * as React from "react"
-
-// Simple class merger helper in case lib/utils is missing or different
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ")
-}
+import { cn } from "@/lib/utils"
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (

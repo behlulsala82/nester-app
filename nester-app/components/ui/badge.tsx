@@ -1,8 +1,5 @@
 import * as React from "react"
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ")
-}
+import { cn } from "@/lib/utils"
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'outline' | 'secondary' | 'destructive'

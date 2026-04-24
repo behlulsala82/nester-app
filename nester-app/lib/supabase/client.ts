@@ -5,10 +5,9 @@ export function createSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!supabaseUrl || !supabaseUrl.startsWith('http')) {
-    console.warn('Supabase URL is missing or invalid. Please update .env.local')
-    return null as unknown as ReturnType<typeof createBrowserClient<Database>>
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase URL or Anon Key is missing. Check your .env.local file.')
   }
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey!)
+  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
 }

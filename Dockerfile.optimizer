@@ -1,0 +1,29 @@
+# Production Dockerfile for Optimizer Backend
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# System dependencies for PDF generation and QR codes
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install specific versions for stability
+RUN pip install --no-cache-dir \
+    fastapi==0.110.0 \
+    uvicorn==0.27.1 \
+    pydantic==2.6.3 \
+    reportlab==3.6.13 \
+    qrcode==7.4.2 \
+    Pillow==9.5.0 \
+    python-multipart==0.0.9
+
+# Copy backend code
+COPY nester-optimizer/ /app/
+
+# Expose port
+EXPOSE 8000
+
+# Start command
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

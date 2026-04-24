@@ -13,6 +13,10 @@ interface OrderData {
   board_height: number
   total_sheets: number
   waste_percent: number
+  efficiency_score: number
+  selected_strategy: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  placements_data: any
   pieces: {
     width: number
     height: number
@@ -34,41 +38,54 @@ export async function saveOrder(data: OrderData) {
 
   try {
     // 1. Insert into 'orders' table
+    const orderPayload: OrderInsert = {
+      user_id: user.id,
+      material: material_standardize(data.material),
+      board_width: data.board_width,
+      board_height: data.board_height,
+      total_sheets: data.total_sheets,
+      waste_percent: data.waste_percent,
+      efficiency_score: data.efficiency_score,
+      selected_strategy: data.selected_strategy,
+      placements_data: data.placements_data
+    }
+
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .insert({
-        user_id: user.id,
-        material: data.material,
-        board_width: data.board_width,
-        board_height: data.board_height,
-        total_sheets: data.total_sheets,
-        waste_percent: data.waste_percent
-      } as OrderInsert)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(orderPayload as any)
       .select()
       .single()
 
-    if (orderError) throw orderError
+    if (orderError || !order) throw orderError || new Error("Order not created")
 
     // 2. Insert pieces with the new order_id
     const piecesToInsert: PieceInsert[] = data.pieces.map(p => ({
-      order_id: order.id,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      order_id: (order as any).id,
       ...p
     }))
 
     const { error: piecesError } = await supabase
       .from('pieces')
-      .insert(piecesToInsert)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(piecesToInsert as any)
 
     if (piecesError) throw piecesError
 
     revalidatePath('/dashboard')
     revalidatePath('/admin')
-    return { success: true, orderId: order.id }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return { success: true, orderId: (order as any).id }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Save Order Error:', error)
-    return { error: error.message || 'Failed to save order' }
+    return { error: (error as Error).message || 'Failed to save order' }
   }
+}
+
+function material_standardize(m: string) {
+  return m || 'Standard'
 }
 
 export async function getOrders() {
@@ -85,5 +102,6 @@ export async function getOrders() {
     return []
   }
 
-  return orders
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return orders as any[]
 }

@@ -2,8 +2,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { 
-  BarChart3, 
-  Settings,
   Sparkles,
   Save,
   CheckCircle2,
@@ -13,46 +11,24 @@ import {
   ArrowRightLeft,
   Columns,
   Rows,
-  Scissors,
-  X,
   FileDown
 } from 'lucide-react'
 import { CutVisualizer } from '../visualizer/cut-visualizer'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { createSupabaseClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { OptimizationResult, PieceInput } from '@/types'
+import { Database } from '@/types/database'
 
-interface Placement {
-  x: number
-  y: number
-  width: number
-  height: number
-  bin_index: number
-}
-
-interface LayoutOption {
-  type: string
-  score: number
-  total_sheets: number
-  waste_percent: number
-  used_area: number
-  waste_area: number
-  efficiency_score: number
-  cut_lines_count: number
-  max_cut_length: number
-  placements: Placement[]
-  description: string
-}
+type OrderInsert = Database['public']['Tables']['orders']['Insert']
+type PieceInsert = Database['public']['Tables']['pieces']['Insert']
 
 interface ResultsDashboardProps {
-  results: {
-    layouts: LayoutOption[]
-    best_layout: LayoutOption
-  } | null
+  results: OptimizationResult | null
   boardWidth: number
   boardHeight: number
   material: string
-  originalPieces: any[]
+  originalPieces: PieceInput[]
 }
 
 export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ 
@@ -69,7 +45,10 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   const [showToast, setShowToast] = useState(false)
   
   const supabase = useMemo(() => {
-    try { return createSupabaseClient() } catch (e) { return null }
+    try { return createSupabaseClient() } catch (e) { 
+        console.error("Supabase creation error:", e);
+        return null;
+    }
   }, [])
   
   useEffect(() => {
@@ -129,47 +108,54 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
     if (!currentLayout || isSaving || !supabase) return
     setIsSaving(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: userData } = await supabase.auth.getUser()
+      const user = userData?.user
       if (!user) {
         alert("Please login first.")
         setIsSaving(false)
         return
       }
       
-      const { data: orderData, error: orderError } = await (supabase.from('orders') as any)
-        .insert({
-          user_id: user.id,
-          material: material,
-          board_width: boardWidth,
-          board_height: boardHeight,
-          total_sheets: currentLayout.total_sheets,
-          waste_percent: currentLayout.waste_percent,
-          selected_strategy: currentLayout.type,
-          placements_data: currentLayout.placements, 
-          efficiency_score: currentLayout.efficiency_score
-        })
+      const orderPayload: OrderInsert = {
+        user_id: user.id,
+        material: material,
+        board_width: boardWidth,
+        board_height: boardHeight,
+        total_sheets: currentLayout.total_sheets,
+        waste_percent: currentLayout.waste_percent,
+        selected_strategy: currentLayout.type,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        placements_data: currentLayout.placements as any,
+        efficiency_score: currentLayout.efficiency_score
+      }
+
+      const { data: orderData, error: orderError } = await supabase.from('orders')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .insert(orderPayload as any)
         .select()
         .single()
 
       if (orderError || !orderData) throw orderError || new Error("Order creation failed")
       
-      const piecesToInsert = (originalPieces || []).map(p => ({
+      const piecesToInsert: PieceInsert[] = (originalPieces || []).map(p => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         order_id: (orderData as any).id,
-        width: p.width,
-        height: p.height,
-        quantity: p.quantity,
+        width: parseFloat(p.width),
+        height: parseFloat(p.height),
+        quantity: parseInt(p.quantity),
         rotation: true,
         edge_top: false, edge_bottom: false, edge_left: false, edge_right: false
       }))
 
       if (piecesToInsert.length > 0) {
-        const { error: piecesError } = await (supabase.from('pieces') as any).insert(piecesToInsert)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: piecesError } = await supabase.from('pieces').insert(piecesToInsert as any)
         if (piecesError) throw piecesError
       }
       setIsSaved(true)
       setShowToast(true)
       setTimeout(() => setShowToast(false), 5000)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Save error:", error)
     } finally {
       setIsSaving(false)
@@ -183,7 +169,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       case 'compact-block': return <Zap className="h-4 w-4" />
       case 'strip-mode': return <Layers className="h-4 w-4" />
       case 'rotated-board': return <ArrowRightLeft className="h-4 w-4" />
-      default: return <Settings className="h-4 w-4" />
+      default: return <Zap className="h-4 w-4" />
     }
   }
 
@@ -281,12 +267,12 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                  
                  <div className="space-y-2.5 pt-4 border-t border-slate-800/40">
                     <div className="flex justify-between items-center text-[10px] font-black">
-                       <span className="text-slate-200 uppercase tracking-widest font-black">USED AREA</span>
-                       <span className="text-slate-100 font-mono">{(currentLayout.used_area / 1000000).toFixed(2)} m²</span>
+                       <span className="text-slate-200 uppercase tracking-widest font-black text-[8px]">USED AREA</span>
+                       <span className="text-slate-100 font-mono text-[9px]">{(currentLayout.used_area / 1000000).toFixed(2)} m²</span>
                     </div>
                     <div className="flex justify-between items-center text-[10px] font-black">
-                       <span className="text-slate-400 uppercase tracking-widest font-black opacity-80">WASTE AREA</span>
-                       <span className="text-red-500 font-mono">{(currentLayout.waste_area / 1000000).toFixed(2)} m²</span>
+                       <span className="text-slate-400 uppercase tracking-widest font-black opacity-80 text-[8px]">WASTE AREA</span>
+                       <span className="text-red-500 font-mono text-[9px]">{(currentLayout.waste_area / 1000000).toFixed(2)} m²</span>
                     </div>
                  </div>
               </CardContent>

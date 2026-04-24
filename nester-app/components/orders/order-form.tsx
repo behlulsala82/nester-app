@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Plus, Trash2, Layout, Save, Calculator, Loader2, Circle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, Layout, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ResultsDashboard } from './results-dashboard'
+import { OptimizationResult } from '@/types'
 
 interface PieceInput {
   id: string
@@ -18,7 +19,7 @@ interface PieceInput {
 }
 
 const INITIAL_PIECE: PieceInput = {
-  id: crypto.randomUUID(),
+  id: '',
   width: '',
   height: '',
   quantity: '1',
@@ -30,12 +31,12 @@ const INITIAL_PIECE: PieceInput = {
 }
 
 // Visual Edge Band Selector Component
-const EdgeSelector = ({ piece, onUpdate }: { piece: PieceInput, onUpdate: (field: any, val: boolean) => void }) => {
+const EdgeSelector = ({ piece, onUpdate }: { piece: PieceInput, onUpdate: (field: keyof PieceInput, val: boolean) => void }) => {
   const directions = [
-    { id: 'edge_top', label: 'T', className: 'top-0 left-1/2 -translate-x-1/2 w-6 h-1' },
-    { id: 'edge_bottom', label: 'B', className: 'bottom-0 left-1/2 -translate-x-1/2 w-6 h-1' },
-    { id: 'edge_left', label: 'L', className: 'left-0 top-1/2 -translate-y-1/2 w-1 h-6' },
-    { id: 'edge_right', label: 'R', className: 'right-0 top-1/2 -translate-y-1/2 w-1 h-6' },
+    { id: 'edge_top' as keyof PieceInput, className: 'top-0 left-1/2 -translate-x-1/2 w-6 h-1' },
+    { id: 'edge_bottom' as keyof PieceInput, className: 'bottom-0 left-1/2 -translate-x-1/2 w-6 h-1' },
+    { id: 'edge_left' as keyof PieceInput, className: 'left-0 top-1/2 -translate-y-1/2 w-1 h-6' },
+    { id: 'edge_right' as keyof PieceInput, className: 'right-0 top-1/2 -translate-y-1/2 w-1 h-6' },
   ]
 
   return (
@@ -45,11 +46,11 @@ const EdgeSelector = ({ piece, onUpdate }: { piece: PieceInput, onUpdate: (field
         <button
           key={dir.id}
           type="button"
-          onClick={() => onUpdate(dir.id as any, !piece[dir.id as keyof PieceInput])}
+          onClick={() => onUpdate(dir.id, !piece[dir.id])}
           className={cn(
             "absolute rounded-full transition-all duration-200",
             dir.className,
-            piece[dir.id as keyof PieceInput] 
+            piece[dir.id] 
               ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
               : "bg-slate-800/40 hover:bg-slate-700"
           )}
@@ -63,10 +64,9 @@ export function OrderForm() {
   const [material, setMaterial] = useState('MDF White 18mm')
   const [boardWidth, setBoardWidth] = useState('2800')
   const [boardHeight, setBoardHeight] = useState('2100')
-  const [pieces, setPieces] = useState<PieceInput[]>([{ ...INITIAL_PIECE }])
+  const [pieces, setPieces] = useState<PieceInput[]>([{ ...INITIAL_PIECE, id: crypto.randomUUID() }])
   const [isLoading, setIsLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<OptimizationResult | null>(null)
   
   const lastInputRef = useRef<HTMLInputElement>(null)
 
@@ -94,7 +94,6 @@ export function OrderForm() {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     setIsLoading(true)
-    setError(null)
     
     try {
       const payload = {
@@ -132,7 +131,7 @@ export function OrderForm() {
       }, 100)
       
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error occurred')
+        console.error("Submit error:", err);
     } finally {
       setIsLoading(false)
     }
@@ -141,7 +140,7 @@ export function OrderForm() {
   return (
     <div className="space-y-4 max-w-6xl mx-auto p-4 animate-in fade-in duration-500 pb-20">
       
-      {/* Configuration Header - Responsive Grid */}
+      {/* Configuration Header */}
       <section className="bg-slate-900 p-5 lg:p-6 rounded-3xl border border-slate-800 shadow-xl space-y-5">
         <div className="flex items-center space-x-2 border-b border-slate-800/80 pb-3">
           <Layout className="h-4 w-4 text-blue-500" />
@@ -193,6 +192,7 @@ export function OrderForm() {
               onClick={addPiece}
               className="flex-1 sm:flex-none h-11 px-6 bg-slate-800/80 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all"
             >
+              <Plus className="h-4 w-4 inline mr-2" />
               Add Row
             </button>
             <button
@@ -205,7 +205,6 @@ export function OrderForm() {
           </div>
         </div>
 
-        {/* RESPONSIVE PIECES LIST */}
         <div className="p-4 sm:p-0 overflow-x-hidden">
           {/* Desktop Table View */}
           <table className="hidden sm:table w-full border-collapse text-left">

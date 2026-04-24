@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       users: {
@@ -35,6 +35,9 @@ export interface Database {
           board_height: number
           total_sheets: number
           waste_percent: number
+          efficiency_score: number
+          selected_strategy: string
+          placements_data: Json
           created_at: string
         }
         Insert: {
@@ -43,8 +46,11 @@ export interface Database {
           material: string
           board_width: number
           board_height: number
-          total_sheets?: number
-          waste_percent?: number
+          total_sheets: number
+          waste_percent: number
+          efficiency_score: number
+          selected_strategy: string
+          placements_data: Json
           created_at?: string
         }
         Update: {
@@ -55,6 +61,9 @@ export interface Database {
           board_height?: number
           total_sheets?: number
           waste_percent?: number
+          efficiency_score?: number
+          selected_strategy?: string
+          placements_data?: Json
           created_at?: string
         }
       }

@@ -3,12 +3,9 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { 
   RotateCcw, 
-  Maximize, 
-  Move, 
   ChevronLeft, 
   ChevronRight, 
-  FileText,
-  X
+  FileText
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -116,15 +113,13 @@ export const CutVisualizer: React.FC<CutVisualizerProps> = ({
       {/* CANVAS CONTAINER */}
       <div className="relative flex-1 overflow-hidden bg-[#010409] z-10">
         <InteractiveBinCanvas
-          key={currentSheetIndex}
-          index={currentSheetIndex}
           placements={bins[binIndices[currentSheetIndex]]}
           boardWidth={boardWidth}
           boardHeight={boardHeight}
         />
       </div>
 
-      {/* THUMBNAILS - MOBILE FRIENDLY */}
+      {/* THUMBNAILS */}
       <div className="px-4 py-2 bg-slate-900 border-t border-slate-800/40 flex gap-2 lg:gap-1.5 overflow-x-auto scrollbar-hide scroll-smooth relative z-20">
          {binIndices.map(idx => (
             <button
@@ -150,7 +145,13 @@ export const CutVisualizer: React.FC<CutVisualizerProps> = ({
   )
 }
 
-function InteractiveBinCanvas({ index, placements, boardWidth, boardHeight }: any) {
+interface InteractiveBinCanvasProps {
+    placements: Placement[];
+    boardWidth: number;
+    boardHeight: number;
+}
+
+function InteractiveBinCanvas({ placements, boardWidth, boardHeight }: InteractiveBinCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.1 })
@@ -160,13 +161,12 @@ function InteractiveBinCanvas({ index, placements, boardWidth, boardHeight }: an
 
   const calculateAutoFit = useCallback(() => {
     if (containerRef.current) {
-        const cw = containerRef.current.clientWidth - 40 // Padding
+        const cw = containerRef.current.clientWidth - 40
         const ch = containerRef.current.clientHeight - 40 
         
-        // Calculate best fit scale
         const scaleW = cw / boardWidth
         const scaleH = ch / boardHeight
-        const bestScale = Math.min(scaleW, scaleH) * 0.95 // 5% safe margin
+        const bestScale = Math.min(scaleW, scaleH) * 0.95
         
         setTransform({
           x: (containerRef.current.clientWidth - boardWidth * bestScale) / 2,
@@ -177,7 +177,6 @@ function InteractiveBinCanvas({ index, placements, boardWidth, boardHeight }: an
   }, [boardWidth, boardHeight])
 
   useEffect(() => {
-    // Small delay to ensure container dimensions are ready
     const timer = setTimeout(calculateAutoFit, 50)
     window.addEventListener('resize', calculateAutoFit)
     return () => {
@@ -196,10 +195,8 @@ function InteractiveBinCanvas({ index, placements, boardWidth, boardHeight }: an
     const drawLine = (x1: number, y1: number, x2: number, y2: number) => {
        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
     }
-    // Horizontal - Bottom
     drawLine(0, bh + offset, bw, bh + offset)
     ctx.fillText(`${Math.round(bw)}`, bw/2, bh + offset + (20/scale))
-    // Vertical - Left
     ctx.save(); ctx.translate(-offset, bh/2); ctx.rotate(-Math.PI/2); 
     drawLine(-bh/2, 0, bh/2, 0); ctx.fillText(`${Math.round(bh)}`, 0, -(12/scale)); ctx.restore()
   }
@@ -220,9 +217,9 @@ function InteractiveBinCanvas({ index, placements, boardWidth, boardHeight }: an
     ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1/transform.scale; ctx.strokeRect(0, 0, boardWidth, boardHeight)
     ctx.fillStyle = 'rgba(220, 38, 38, 0.1)'; ctx.fillRect(0, 0, boardWidth, boardHeight)
     ctx.globalCompositeOperation = 'destination-out'
-    placements.forEach((p: any) => ctx.fillRect(p.x, p.y, p.width, p.height))
+    placements.forEach((p: Placement) => ctx.fillRect(p.x, p.y, p.width, p.height))
     ctx.globalCompositeOperation = 'source-over'
-    placements.forEach((p: any) => {
+    placements.forEach((p: Placement) => {
       ctx.fillStyle = '#1d4ed8'; ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 0.8/transform.scale
       ctx.fillRect(p.x, p.y, p.width, p.height); ctx.strokeRect(p.x, p.y, p.width, p.height)
       const labelScaleLimit = 30
@@ -241,7 +238,7 @@ function InteractiveBinCanvas({ index, placements, boardWidth, boardHeight }: an
     return () => cancelAnimationFrame(requestRef.current!)
   }, [draw])
 
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: React.WheelEvent) => {
     const rect = canvasRef.current!.getBoundingClientRect()
     const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1
     const mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top
@@ -254,7 +251,7 @@ function InteractiveBinCanvas({ index, placements, boardWidth, boardHeight }: an
   useEffect(() => {
     const container = containerRef.current
     if (container) {
-      const gearWheel = (e: any) => { e.preventDefault(); handleWheel(e) }
+      const gearWheel = (e: WheelEvent) => { e.preventDefault(); handleWheel(e as unknown as React.WheelEvent) }
       container.addEventListener('wheel', gearWheel, { passive: false })
       return () => container.removeEventListener('wheel', gearWheel)
     }
@@ -289,14 +286,11 @@ function InteractiveBinCanvas({ index, placements, boardWidth, boardHeight }: an
       onTouchEnd={() => setIsDragging(false)}
     >
       <canvas ref={canvasRef} className="w-full h-full" />
-      
-      {/* ZOOM BADGE */}
       <div className="absolute top-3 left-4 flex items-center gap-2 pointer-events-none">
         <div className="px-2.5 py-1 bg-blue-600/90 border border-blue-400/30 rounded-lg text-[8px] lg:text-[10px] font-black text-white shadow-xl pointer-events-auto select-none">
           {Math.round(transform.scale * 100)}%
         </div>
       </div>
-
       <div className="absolute top-3 right-4 flex items-center gap-2">
          <button onClick={() => calculateAutoFit()} className="p-2 bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-xl text-slate-500 hover:text-white transition-all shadow-xl">
             <RotateCcw className="h-3.5 w-3.5" />
