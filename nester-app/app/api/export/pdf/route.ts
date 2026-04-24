@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 
-const PDF_OPTIMIZER_URL = 'http://localhost:8000/export/pdf'
+const BASE_URL = (process.env.OPTIMIZER_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+const PDF_URL = `${BASE_URL}/export/pdf`
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
 
     // Forward request to Python microservice for PDF generation
-    const response = await fetch(PDF_OPTIMIZER_URL, {
+    const response = await fetch(PDF_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

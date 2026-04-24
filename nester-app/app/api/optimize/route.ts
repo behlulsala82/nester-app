@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
-const OPTIMIZER_URL = process.env.OPTIMIZER_API_URL || 'http://localhost:8000/optimize'
+const BASE_URL = (process.env.OPTIMIZER_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+const OPTIMIZE_URL = `${BASE_URL}/optimize`
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     // Forward request to Python microservice
-    const response = await fetch(OPTIMIZER_URL, {
+    const response = await fetch(OPTIMIZE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
