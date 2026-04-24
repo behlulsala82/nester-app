@@ -2,3 +2,6 @@ fastapi
 uvicorn
 rectpack
 pydantic
+reportlab
+qrcode
+pillow
